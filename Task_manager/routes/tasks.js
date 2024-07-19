@@ -1,6 +1,7 @@
     const express = require('express')
     const router = express.Router()
-    const {getAllTasks,getTask,createTask,updateTask,deleteTask} = require('../controllers/tasks')
+    const path = require('path')
+    const {login,signup,getAllTasks,getTask,createTask,updateTask,deleteTask} = require('../controllers/tasks')
     const db = require('../controllers/database')
     const {query,body,validationResult} = require('express-validator')
 
@@ -43,12 +44,18 @@
         }
     }
 
-    router.use('/api/v1/tasks/:id/',checkUser)
+    // router.use('/:id/task/:taskid',checkUser)
 
-    // for pulling all the task and creating a task
-    router.route('/:id')
+    router.get('/user/:id',(req,res)=>{
+        console.log("yo run bhayo")
+        res.sendFile(path.join(__dirname, '../starter/public', 'home.html'));
+    })
+
+    // // for pulling all the task and creating a task
+    router.route('/user/:id/tasks')
         .get((req,res)=>{
             try{
+                console.log("calling getalltasks")
                 getAllTasks(req,res)
             }catch(err){
                 res.status(500),json(err)
@@ -61,21 +68,13 @@
                 throw new Error('User doesn\'t exist')
             }
         })
-
-    // for signup
-    router.route('/signup',(req,res)=>{
-        res.send('signup')
-    })
-
-    // for login
-    router.route('/login',(req,res)=>{
-        res.send('login')
-    })
+    
 
     // for getting, updating and deleting a specific task
-    router.route('/:id/:taskId')
+    router.route('/user/:id/task/:taskId')
         .get((req,res)=>{
-            getTask(req,res)
+            res.sendFile(path.join(__dirname, '../starter/public', 'task.html'));
+            // getTask(req,res)
         })
         .patch((req,res)=>{
             updateTask(req,res) 
@@ -84,4 +83,41 @@
             deleteTask(req,res)
         })
 
-    module.exports = router
+        router.route('/user/:id/get_task/:taskId')
+        .get((req,res)=>{
+            getTask(req,res)
+        })
+
+router.route('/login')
+.get((req, res) => {
+    console.log('routes ko login')
+    res.sendFile(path.join(__dirname, '../starter/public', 'login.html'));
+})
+.post(async (req, res) => {
+    try {
+        await login(req,res)
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+})
+
+router.get('/signup', (req, res) => {
+    res.sendFile(path.join(__dirname, '../starter/public', 'signup.html'));
+});
+
+router.post('/signup', body('email').trim().isEmail(), async (req, res) => {
+    try {
+        const result = validationResult(req);
+        console.log(result)
+        if (result.isEmpty()) {
+            console.log("signup from routes")
+            await signup(req,res)
+        }
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
+module.exports = router
+
+
