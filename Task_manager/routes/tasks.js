@@ -1,7 +1,7 @@
     const express = require('express')
     const router = express.Router()
     const path = require('path')
-    const {login,signup,getAllTasks,getTask,createTask,updateTask,deleteTask} = require('../controllers/tasks')
+    const {login,logout,signup,getAllTasks,getTask,createTask,updateTask,deleteTask} = require('../controllers/tasks')
     const db = require('../controllers/database')
     const {query,body,validationResult} = require('express-validator')
 
@@ -12,42 +12,32 @@
     //         user_id INTEGER REFERENCES Users(id),
     //         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     //         completed BOOLEAN DEFAULT FALSE,
-    //         completed_at TIMESTAMP
     //     )
     // `
 
     // const createTableQuery = `
     //     CREATE TABLE IF NOT EXISTS Users (
     //         id SERIAL PRIMARY KEY,
-    //         first_name VARCHAR(50) NOT NULL,
-    //         last_name VARCHAR(50) NOT NULL,
-    //         email VARCHAR(50) NOT NULL
+    //         email VARCHAR(50) NOT NULL,
+    //          loggedin BOOLEAN NOT NULL
     //     )
     // `
 
-    // db.none(createTableQuery)
-    //     .then(()=>{
-    //         console.log('created table sucessfully')
-    //     })
-    //     .catch((err)=>{
-    //         console.log(err)
-    //     })
-
-
-    const checkUser = async (req,res,next) => {
-        if(!req.params.id){
-            return next()
-        }
-        const user = await db.one('SELECT * FROM Users WHERE id = $1',[req.params.id])
-        if(!user){
-            res.send('User does not exist')
+    const checkCookie = async (req,res) => {
+        if(req.cookies.id===undefined){
+            res.status(500).json("Not allowed")
         }
     }
 
-    // router.use('/:id/task/:taskid',checkUser)
+    router.get('/',(req,res)=>{
+        if(req.cookies.id===undefined)
+            res.redirect('/login')
+        else
+            res.redirect(`/user/${req.cookies.id}`)
+    })
 
     router.get('/user/:id',(req,res)=>{
-        console.log("yo run bhayo")
+        checkCookie(req,res)
         res.sendFile(path.join(__dirname, '../starter/public', 'home.html'));
     })
 
@@ -55,7 +45,7 @@
     router.route('/user/:id/tasks')
         .get((req,res)=>{
             try{
-                console.log("calling getalltasks")
+                checkCookie(req,res)
                 getAllTasks(req,res)
             }catch(err){
                 res.status(500),json(err)
@@ -63,41 +53,56 @@
         })
         .post((req,res)=>{
             try{
-                    createTask(req,res)
+                checkCookie(req,res)
+                createTask(req,res)
             }catch(err){
                 throw new Error('User doesn\'t exist')
             }
         })
-    
 
     // for getting, updating and deleting a specific task
     router.route('/user/:id/task/:taskId')
         .get((req,res)=>{
+            checkCookie(req,res)
             res.sendFile(path.join(__dirname, '../starter/public', 'task.html'));
             // getTask(req,res)
         })
         .patch((req,res)=>{
+            checkCookie(req,res)
             updateTask(req,res) 
         })
         .delete((req,res)=>{
+            checkCookie(req,res)
             deleteTask(req,res)
         })
 
         router.route('/user/:id/get_task/:taskId')
         .get((req,res)=>{
+            checkCookie(req,res)
             getTask(req,res)
         })
 
 router.route('/login')
-.get((req, res) => {
-    console.log('routes ko login')
-    res.sendFile(path.join(__dirname, '../starter/public', 'login.html'));
+.get(async (req, res) => {
+    if(req.cookies.id===undefined)
+        res.sendFile(path.join(__dirname, '../starter/public', 'login.html'));
+    else
+        res.redirect(`/user/${req.cookies.id}`)
 })
 .post(async (req, res) => {
     try {
         await login(req,res)
     } catch (err) {
         res.status(500).send(err.message);
+    }
+})
+
+router.post('/logout',async(req,res)=>{
+    try{
+        checkCookie(req,res)
+        await logout(req,res)
+    }catch(err){
+        res.status(500).send(err.message)
     }
 })
 
@@ -108,9 +113,7 @@ router.get('/signup', (req, res) => {
 router.post('/signup', body('email').trim().isEmail(), async (req, res) => {
     try {
         const result = validationResult(req);
-        console.log(result)
         if (result.isEmpty()) {
-            console.log("signup from routes")
             await signup(req,res)
         }
     } catch (err) {

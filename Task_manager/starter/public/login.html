@@ -13,19 +13,23 @@
         <div class="form-control">
             <input type="email" name="email" placeholder="Email" required />
         </div>
+        <div class="form-control">
+          <input type="password" name="password" placeholder="Password" required />
+      </div>
         <button type="submit" class="btn">Login</button>
     </form>
     <script>
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = e.target.email.value;
+            const password = e.target.password.value;
             try {
                 const response = await fetch('http://localhost:3000/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ email })
+                    body: JSON.stringify({ email,password })
                 });
                 if (response.redirected) {
                     window.location.href = response.url;

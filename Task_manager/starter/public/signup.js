@@ -37,11 +37,9 @@ signupForm.addEventListener('submit', async (e) => {
       email: signupEmail.value,
       password: signupPassword.value
     });
-    console.log(response)
     if(response.status === 200){
       formAlert.textContent = 'Sign-up successful!';
       formAlert.style.color = 'green';
-      console.log("href huna baki")
       window.location.href = '/login';
     }
     else{

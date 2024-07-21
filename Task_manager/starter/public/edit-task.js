@@ -15,7 +15,6 @@ const user_id = urlParts[urlParts.indexOf('user') + 1];
 const showTask = async () => {
   try {
     const response = await axios.get(`/user/${user_id}/get_task/${id}`)
-    console.log(response.data.id)
     taskIDDOM.textContent = response.data.id
     taskNameDOM.value = response.data.task
     tempName = response.data.task
@@ -31,8 +30,6 @@ showTask()
 
 document.getElementById('go-back').addEventListener('click', function (e) {
   e.preventDefault();
-  console.log("run bhayo go back button")
-  // history.go(-1); // or history.go(-1);
   window.location.href = `http://localhost:3000/user/${user_id}`
 });
 

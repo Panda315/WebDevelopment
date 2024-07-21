@@ -6,12 +6,9 @@ const signup = async (req,res) =>{
         if(user!==null){
             return res.status(400).json({message:'Email already exists'})
         }
-        console.log("controllers ko signup")
-        console.log(req.body.email)
-        const newUser = await db.one('INSERT INTO Users (email, password) VALUES ($1,$2)',[req.body.email,req.body.password])
-        console.log(newUser)
-        if(newUser){
-            res.status(200)
+        const newUser = await db.oneOrNone('INSERT INTO Users (email, password) VALUES ($1,$2)',[req.body.email,req.body.password])
+        if(newUser===null){
+            res.status(200).json("User created sucessfully")
         }
     }catch(err){
         res.json(err)
@@ -20,19 +17,38 @@ const signup = async (req,res) =>{
 
 const login = async (req,res) => {
     try{
-        console.log("kina na chaleko lol")
-        console.log(req.body.email)
-        console.log("yo bhanda agadi email print hunu parne")
-        const user = await db.oneOrNone('SELECT * FROM Users WHERE email=$1',[req.body.email])
-        console.log(user)
+        const password = req.body.password.trim()
+        const user = await db.oneOrNone('SELECT * FROM Users WHERE email=$1 and password=$2',[req.body.email,password])
         if(user!==null){
-            console.log("controller ko login")
-            res.redirect(`/user/${user.id}`)
+            const loggedin = await db.oneOrNone('UPDATE users SET loggedin=$1 WHERE id=$2',[true,user.id]) 
+            if(loggedin===null){
+                res.cookie('id', user.id, { httpOnly: true, maxAge: 3600000 });
+                res.redirect(`/user/${user.id}`)
+            } 
         }
         else
-            res.status(400).json({message:'Email doesn\'t exists'})
+            res.status(400).json({message:'Invalid credentials'})
     }catch(err){
-        console.log("error ayo")
+        console.log(err)
+        res.json(err)
+    }
+}
+
+const logout = async(req,res) => {
+    try{
+        const user_id = req.cookies.id;
+        if(user_id!==null){
+            const loggedin = await db.oneOrNone('UPDATE users SET loggedin=$1 WHERE id=$2',[false,user_id]) 
+            if(loggedin===null){
+                res.clearCookie('id');
+                res.status(200).json("logged out")
+                return ;    
+            }
+        }
+        else
+            res.status(400).json({message:'Invalid credentials'})
+    }catch(err){
+        console.log(err)
         res.json(err)
     }
 }
@@ -40,7 +56,6 @@ const login = async (req,res) => {
 const getAllTasks = async (req,res) => {
     try{
         const tasks = await db.manyOrNone('SELECT * FROM Tasks WHERE user_id=$1',[req.params.id])
-        console.log("controllers ko getalltasks")
         res.status(200).json(tasks)
     }catch(err){
         res.status(500).json(err)
@@ -49,11 +64,10 @@ const getAllTasks = async (req,res) => {
 
 const createTask = async (req,res) => {
     try{
-        const id = await db.oneOrNone(
+        const task = await db.oneOrNone(
             'INSERT INTO Tasks(task,user_id) VALUES($1,$2) RETURNING id',[req.body.task,req.params.id]
         )
-        console.log('from createTask : ' + id)
-        res.status(201).json(id)
+        res.status(201).json(task)
     }catch(err){
         res.status(500).json(err)
     }
@@ -99,4 +113,4 @@ const deleteTask = async (req,res) => {
     }
 }
 
-module.exports = {signup,login,getAllTasks,createTask,getTask,updateTask,deleteTask}
+module.exports = {signup,logout,login,getAllTasks,createTask,getTask,updateTask,deleteTask}

@@ -3,7 +3,7 @@ const app = express();
 const path = require('path');
 const port = 3000;
 const routesHandler = require('./routes/tasks');
-const authentication = require('./routes/authenticate');
+const cookieParser = require('cookie-parser')
 const db = require('./controllers/database');
 
 const initialization = async () => {
@@ -19,6 +19,7 @@ const initialization = async () => {
 initialization();
 
 app.use(express.json()); 
+app.use(cookieParser())
 app.use(express.static(path.join(__dirname, 'starter/public')));
 app.use('/', routesHandler);
 
